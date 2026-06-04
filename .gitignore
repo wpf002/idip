@@ -14,9 +14,10 @@ node_modules/
 npm-debug.log*
 yarn-error.log
 
-# iOS
+# iOS / CocoaPods / Bundler
 mobile/ios/Pods/
 mobile/ios/build/
+mobile/vendor/
 *.xcuserstate
 DerivedData/
 
