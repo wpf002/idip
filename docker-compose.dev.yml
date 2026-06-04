@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: idip
+      POSTGRES_PASSWORD: idip
+      POSTGRES_DB: idip
+    ports:
+      - "5433:5432"
+    volumes:
+      - idip_pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6380:6379"
+
+  backend:
+    build: ./backend
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: postgresql+asyncpg://idip:idip@db:5432/idip
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: dev-secret
+      HMAC_SECRET: dev-hmac
+    ports:
+      - "8080:8080"
+
+volumes:
+  idip_pgdata:

@@ -1,0 +1,60 @@
+{
+  "state_code": "NY",
+  "state_name": "New York",
+  "version": "1.0",
+  "aamva_versions_supported": [
+    "06",
+    "07",
+    "08",
+    "09",
+    "10"
+  ],
+  "license_number": {
+    "regex": "^[0-9]{9}$",
+    "min_length": 9,
+    "max_length": 9,
+    "allowed_characters": "numeric"
+  },
+  "required_fields": [
+    "DCS",
+    "DAC",
+    "DBB",
+    "DBA",
+    "DBC",
+    "DAQ",
+    "DAG",
+    "DAI",
+    "DAJ",
+    "DAK"
+  ],
+  "optional_fields": [
+    "DBD",
+    "DAD",
+    "DAU",
+    "DAY",
+    "DAZ"
+  ],
+  "date_rules": {
+    "dob_cannot_be_future": true,
+    "expiration_cannot_be_past_for_valid_result": true,
+    "minimum_issue_age": 15,
+    "maximum_age": 110
+  },
+  "address_rules": {
+    "postal_code_regex": "^[0-9]{5}(-[0-9]{4})?$",
+    "state_must_match_jurisdiction": false
+  },
+  "fraud_indicators": {
+    "missing_required_field_weight": 25,
+    "regex_mismatch_weight": 25,
+    "expired_weight": 40,
+    "duplicate_scan_weight": 20,
+    "state_mismatch_weight": 20
+  },
+  "result_thresholds": {
+    "allow_max": 30,
+    "review_max": 70,
+    "deny_min": 71
+  },
+  "min_retention_days": 365
+}

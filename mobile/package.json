@@ -1,0 +1,42 @@
+{
+  "name": "idip",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "react-native start",
+    "ios": "react-native run-ios",
+    "test": "jest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-native": "0.74.5",
+    "react-native-vision-camera": "4.7.3",
+    "react-native-keychain": "8.2.0",
+    "@op-engineering/op-sqlite": "8.0.3",
+    "zustand": "4.5.4",
+    "crypto-js": "4.2.0"
+  },
+  "devDependencies": {
+    "@babel/core": "7.24.7",
+    "@babel/preset-env": "7.24.7",
+    "@babel/preset-typescript": "7.24.7",
+    "@babel/preset-react": "7.24.7",
+    "@react-native/babel-preset": "^0.74.0",
+    "@react-native/metro-config": "^0.74.0",
+    "@types/crypto-js": "4.2.2",
+    "@types/jest": "29.5.12",
+    "@types/react": "18.2.6",
+    "babel-jest": "29.7.0",
+    "jest": "29.7.0",
+    "typescript": "5.4.5"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/__tests__/**/*.test.ts"],
+    "transform": {
+      "^.+\\.(ts|tsx|js|jsx)$": "babel-jest"
+    },
+    "transformIgnorePatterns": ["node_modules/(?!(crypto-js)/)"]
+  }
+}

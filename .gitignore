@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+idip_test.db
+
+# Node / React Native
+node_modules/
+npm-debug.log*
+yarn-error.log
+
+# iOS
+mobile/ios/Pods/
+mobile/ios/build/
+*.xcuserstate
+DerivedData/
+
+# Env / secrets
+.env
+*.local
+
+# OS
+.DS_Store
