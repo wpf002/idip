@@ -90,3 +90,14 @@ cd mobile && npm test       # Jest — pure logic layer (crypto, decision, clien
 - **Signing errors** → make sure a Team is selected and the Bundle ID is unique.
 - **Build fails after adding a native lib** → `cd ios && pod install`, then
   clean build folder in Xcode (⇧⌘K) and rebuild.
+- **`PhaseScriptExecution failed … line N: : command not found` (hermes-engine
+  or "Bundle React Native code and images")** → Xcode's GUI build can't find
+  `node` because it doesn't load your shell profile (common with **nvm**).
+  `.xcode.env` uses `$(command -v node)`, which is empty in that context. Fix by
+  creating `ios/.xcode.env.local` (gitignored, machine-specific) with an
+  absolute path to your node binary:
+  ```bash
+  echo "export NODE_BINARY=$(command -v node)" > ios/.xcode.env.local
+  ```
+  RN's `with-environment.sh` sources this file, so both the hermes and bundle
+  script phases then resolve node correctly. Re-run the build.

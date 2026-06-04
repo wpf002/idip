@@ -27,3 +27,6 @@ DerivedData/
 
 # OS
 .DS_Store
+
+# Claude session/runtime locks (transient)
+.claude/scheduled_tasks.lock
