@@ -1,0 +1,34 @@
+# Render Blueprint — deploys the IDIP backend + a managed Postgres database.
+# Dashboard → New → Blueprint → connect this repo. Render reads this file,
+# provisions both services, and gives the API a fixed https URL.
+services:
+  - type: web
+    name: idip-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: idip-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: HMAC_SECRET
+        generateValue: true
+      # Single instance — the in-memory cache fallback is fine, so no Redis.
+      - key: REDIS_URL
+        value: ""
+      - key: SCAN_RETENTION_DAYS
+        value: "365"
+      - key: ENVIRONMENT
+        value: production
+
+databases:
+  - name: idip-db
+    plan: free
+    databaseName: idip
+    user: idip

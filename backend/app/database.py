@@ -20,7 +20,14 @@ class Base(DeclarativeBase):
 
 def _db_url() -> str:
     # Allow env override (tests set DATABASE_URL to sqlite+aiosqlite).
-    return os.getenv("DATABASE_URL", settings.database_url)
+    url = os.getenv("DATABASE_URL", settings.database_url)
+    # Managed Postgres providers (Render/Heroku/etc.) hand out a "postgres://"
+    # or "postgresql://" URL; the async engine needs the asyncpg driver.
+    if url.startswith("postgres://"):
+        url = "postgresql+asyncpg://" + url[len("postgres://"):]
+    elif url.startswith("postgresql://"):
+        url = "postgresql+asyncpg://" + url[len("postgresql://"):]
+    return url
 
 
 engine = create_async_engine(_db_url(), future=True, echo=False)
