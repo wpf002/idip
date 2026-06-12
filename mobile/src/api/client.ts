@@ -27,6 +27,10 @@ export interface ScanResult {
   is_expired: boolean;
   state: string | null;
   name: string | null;
+  sex?: string | null;
+  height?: string | null;
+  eye_color?: string | null;
+  hair_color?: string | null;
   flags: Array<{ code: string; message: string; weight: number }>;
   challenge_available: boolean;
   challenge_required: boolean;

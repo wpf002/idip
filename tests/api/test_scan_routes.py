@@ -25,6 +25,15 @@ async def test_scan_adult_returns_allow(client, auth_headers, adult_dl):
     assert body["scan_id"]
 
 
+async def test_scan_returns_physical_descriptors(client, auth_headers, adult_dl):
+    resp = await client.post("/v1/scan", json={"barcode_data": adult_dl}, headers=auth_headers)
+    body = resp.json()
+    # Height / eye color / sex come straight off the AAMVA barcode.
+    assert body["height"] == "070 in"
+    assert body["eye_color"] == "BRO"
+    assert body["sex"] == "M"
+
+
 async def test_scan_underage_returns_deny(client, auth_headers, underage_dl):
     resp = await client.post("/v1/scan", json={"barcode_data": underage_dl}, headers=auth_headers)
     body = resp.json()

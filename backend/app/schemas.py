@@ -27,6 +27,10 @@ class ScanResponse(BaseModel):
     flags: list[dict]
     state: str | None
     name: str | None
+    sex: str | None = None
+    height: str | None = None
+    eye_color: str | None = None
+    hair_color: str | None = None
     nationality: str | None = None
     issuing_country: str | None = None
     parse_errors: list[str] = Field(default_factory=list)

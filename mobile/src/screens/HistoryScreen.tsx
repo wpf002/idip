@@ -14,7 +14,27 @@ interface LogItem {
   risk_score: number;
   state: string | null;
   age: number | null;
+  document_type: string | null;
   flags?: Flag[];
+}
+
+const PASSPORT_TYPES = new Set(['US_PASSPORT', 'PASSPORT_CARD', 'INTERNATIONAL_PASSPORT', 'INTERNATIONAL_ID', 'MILITARY_ID']);
+
+function docLabel(t: string | null): string {
+  switch (t) {
+    case 'US_DRIVERS_LICENSE': return "Driver's License";
+    case 'US_STATE_ID': return 'State ID';
+    case 'US_PASSPORT': return 'US Passport';
+    case 'PASSPORT_CARD': return 'Passport Card';
+    case 'INTERNATIONAL_PASSPORT': return 'Passport';
+    case 'INTERNATIONAL_ID': return 'International ID';
+    case 'MILITARY_ID': return 'Military ID';
+    default: return 'ID';
+  }
+}
+
+function docIcon(t: string | null): 'scan' | 'passport' {
+  return t && PASSPORT_TYPES.has(t) ? 'passport' : 'scan';
 }
 
 type Filter = 'ALL' | Decision;
@@ -85,12 +105,18 @@ export function HistoryScreen({ client, onBack }: { client: IDIPClient; onBack: 
         ItemSeparatorComponent={() => <View style={styles.sep} />}
         renderItem={({ item }) => {
           const d = DECISION[item.result];
+          const meta = [item.state, item.age != null ? `Age ${item.age}` : null].filter(Boolean).join(' · ');
           return (
             <View style={styles.row}>
-              <View style={[styles.dot, { backgroundColor: d.color }]} />
+              <View style={[styles.docTile, { backgroundColor: d.color + '22' }]}>
+                <Icon name={docIcon(item.document_type)} size={22} color={d.color} />
+              </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>{d.label}{item.state ? ` · ${item.state}` : ''}{item.age != null ? ` · Age ${item.age}` : ''}</Text>
-                <Text style={styles.rowReason} numberOfLines={2}>{reasonFor(item)}</Text>
+                <Text style={styles.rowTitle}>{docLabel(item.document_type)}{meta ? ` · ${meta}` : ''}</Text>
+                <Text style={styles.rowReason} numberOfLines={2}>
+                  <Text style={{ color: d.color, fontWeight: '700' }}>{d.label}</Text>
+                  {`  ${reasonFor(item)}`}
+                </Text>
               </View>
               <View style={styles.rowRight}>
                 <View style={[styles.riskBadge, { backgroundColor: d.color + '22' }]}>
@@ -121,7 +147,7 @@ const styles = StyleSheet.create({
   legendNote: { ...TYPE.caption, marginTop: SPACE.sm },
   sep: { height: 1, backgroundColor: COLORS.border },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.lg },
-  dot: { width: 12, height: 12, borderRadius: 6 },
+  docTile: { width: 40, height: 40, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center' },
   rowTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   rowReason: { ...TYPE.caption, color: COLORS.textSecondary, marginTop: 2 },
   rowRight: { alignItems: 'flex-end', gap: 4 },
