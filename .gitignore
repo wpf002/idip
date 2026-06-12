@@ -7,7 +7,9 @@ venv/
 .pytest_cache/
 .coverage
 htmlcov/
-idip_test.db
+*.db
+*.sqlite
+*.sqlite3
 
 # Node / React Native
 node_modules/
@@ -17,6 +19,7 @@ yarn-error.log
 # iOS / CocoaPods / Bundler
 mobile/ios/Pods/
 mobile/ios/build/
+mobile/ios/build_device/
 mobile/vendor/
 *.xcuserstate
 DerivedData/

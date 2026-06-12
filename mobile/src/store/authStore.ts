@@ -1,61 +1,49 @@
-// Auth state: API credentials + staff PIN, persisted in the iOS Keychain.
+// Auth state. The backend URL + venue API key come from build-time config
+// (provisioned per venue); door staff only set their name + PIN, which are
+// persisted in the iOS Keychain.
 import { create } from 'zustand';
 import * as Keychain from 'react-native-keychain';
 import { hashPin } from '../utils/crypto';
-import { normalizeApiUrl } from '../utils/validation';
+import { API_KEY, API_URL } from '../config';
 
-const SERVICE_CREDENTIALS = 'idip_api_key';
+const SERVICE_STAFF = 'idip_staff';
 const SERVICE_PIN = 'idip_pin';
 
-export interface Credentials {
+interface AuthState {
   apiUrl: string;
   apiKey: string;
-  staffName: string;
-}
-
-interface AuthState {
-  apiUrl: string | null;
-  apiKey: string | null;
   staffName: string | null;
   isAuthenticated: boolean;
-  hasCredentials: boolean;
+  hasCredentials: boolean; // a staff name + PIN have been set up on this device
   loadCredentials: () => Promise<boolean>;
-  saveSetup: (creds: Credentials, pin: string) => Promise<void>;
+  saveSetup: (staffName: string, pin: string) => Promise<void>;
   verifyPin: (pin: string) => Promise<boolean>;
   logout: () => void;
   reset: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-  apiUrl: null,
-  apiKey: null,
+  // Backend connection is fixed by the build, not the user.
+  apiUrl: API_URL,
+  apiKey: API_KEY,
   staffName: null,
   isAuthenticated: false,
   hasCredentials: false,
 
   async loadCredentials() {
-    const stored = await Keychain.getGenericPassword({ service: SERVICE_CREDENTIALS });
+    const stored = await Keychain.getGenericPassword({ service: SERVICE_STAFF });
     if (!stored) {
       set({ hasCredentials: false });
       return false;
     }
-    const creds: Credentials = JSON.parse(stored.password);
-    set({
-      apiUrl: creds.apiUrl,
-      apiKey: creds.apiKey,
-      staffName: creds.staffName,
-      hasCredentials: true,
-    });
+    set({ staffName: stored.password, hasCredentials: true });
     return true;
   },
 
-  async saveSetup(creds, pin) {
-    const normalized = { ...creds, apiUrl: normalizeApiUrl(creds.apiUrl) };
-    await Keychain.setGenericPassword('idip', JSON.stringify(normalized), {
-      service: SERVICE_CREDENTIALS,
-    });
+  async saveSetup(staffName, pin) {
+    await Keychain.setGenericPassword('staff', staffName, { service: SERVICE_STAFF });
     await Keychain.setGenericPassword('pin', hashPin(pin), { service: SERVICE_PIN });
-    set({ ...normalized, hasCredentials: true });
+    set({ staffName, hasCredentials: true });
   },
 
   async verifyPin(pin) {
@@ -71,14 +59,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   async reset() {
-    await Keychain.resetGenericPassword({ service: SERVICE_CREDENTIALS });
+    await Keychain.resetGenericPassword({ service: SERVICE_STAFF });
     await Keychain.resetGenericPassword({ service: SERVICE_PIN });
-    set({
-      apiUrl: null,
-      apiKey: null,
-      staffName: null,
-      isAuthenticated: false,
-      hasCredentials: false,
-    });
+    set({ staffName: null, isAuthenticated: false, hasCredentials: false });
   },
 }));
