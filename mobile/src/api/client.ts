@@ -21,6 +21,7 @@ export interface ScanResult {
   scan_id: string;
   result: 'ALLOW' | 'REVIEW' | 'DENY';
   risk_score: number;
+  document_type: string | null;
   age: number | null;
   is_valid_age: boolean;
   is_expired: boolean;

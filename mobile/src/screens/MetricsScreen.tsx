@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { THEME } from '../utils/decision';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Header, Screen } from '../components/Chrome';
+import { Segmented, StatCard } from '../components/ui';
+import { COLORS, SPACE } from '../theme';
 import { IDIPClient } from '../api/client';
 
 interface Metrics {
@@ -11,59 +13,47 @@ interface Metrics {
   underage_blocked: number;
 }
 
-const PERIODS: Array<{ key: string; label: string }> = [
+const PERIODS = [
   { key: 'today', label: 'Tonight' },
-  { key: 'this_week', label: 'This Week' },
-  { key: 'this_month', label: 'This Month' },
+  { key: 'this_week', label: 'Week' },
+  { key: 'this_month', label: 'Month' },
 ];
 
-export function MetricsScreen({ client }: { client: IDIPClient }) {
+export function MetricsScreen({ client, onBack }: { client: IDIPClient; onBack: () => void }) {
   const [period, setPeriod] = useState('today');
   const [data, setData] = useState<Metrics | null>(null);
 
   const load = useCallback(async () => {
-    setData((await client.getMetrics(period)) as Metrics);
+    try { setData((await client.getMetrics(period)) as Metrics); } catch { /* offline */ }
   }, [client, period]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  const stat = (label: string, value: number | undefined) => (
-    <View style={styles.card}>
-      <Text style={styles.value}>{value ?? 0}</Text>
-      <Text style={styles.label}>{label}</Text>
-    </View>
-  );
+  const m = data ?? { total_scans: 0, allow: 0, review: 0, deny: 0, underage_blocked: 0 };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.toggle}>
-        {PERIODS.map((p) => (
-          <TouchableOpacity key={p.key} style={[styles.toggleBtn, period === p.key && styles.toggleActive]} onPress={() => setPeriod(p.key)}>
-            <Text style={styles.toggleText}>{p.label}</Text>
-          </TouchableOpacity>
-        ))}
+    <Screen>
+      <Header title="Metrics" onBack={onBack} />
+      <View style={styles.filterWrap}>
+        <Segmented options={PERIODS} value={period} onChange={setPeriod} />
       </View>
-      <View style={styles.grid}>
-        {stat('Total', data?.total_scans)}
-        {stat('Allowed', data?.allow)}
-        {stat('Review', data?.review)}
-        {stat('Denied', data?.deny)}
-        {stat('Underage', data?.underage_blocked)}
-      </View>
-    </View>
+      <ScrollView contentContainerStyle={styles.body}>
+        <StatCard label="Total scans" value={m.total_scans} />
+        <View style={styles.grid}>
+          <StatCard label="Allowed" value={m.allow} accent={COLORS.allow} />
+          <StatCard label="Review" value={m.review} accent={COLORS.review} />
+        </View>
+        <View style={styles.grid}>
+          <StatCard label="Denied" value={m.deny} accent={COLORS.deny} />
+          <StatCard label="Underage" value={m.underage_blocked} accent={COLORS.deny} />
+        </View>
+      </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: THEME.background, padding: 16 },
-  toggle: { flexDirection: 'row', marginBottom: 16 },
-  toggleBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: THEME.card, borderRadius: 8, marginHorizontal: 2 },
-  toggleActive: { backgroundColor: '#2563eb' },
-  toggleText: { color: '#fff', fontWeight: '600' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  card: { width: '48%', margin: '1%', backgroundColor: THEME.card, borderRadius: 12, padding: 20, alignItems: 'center' },
-  value: { color: '#fff', fontSize: 32, fontWeight: '800' },
-  label: { color: THEME.textSecondary, marginTop: 4 },
+  filterWrap: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.md },
+  body: { padding: SPACE.lg, gap: SPACE.md },
+  grid: { flexDirection: 'row', gap: SPACE.md },
 });

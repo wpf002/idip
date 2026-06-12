@@ -1,17 +1,12 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Screen } from '../components/Chrome';
+import { Button } from '../components/ui';
+import { Icon } from '../components/Icon';
 import { useAuthStore } from '../store/authStore';
-import { THEME } from '../utils/decision';
+import { COLORS, RADIUS, SPACE, TYPE } from '../theme';
 import { isValidPin } from '../utils/validation';
 
-// Door staff only set up who they are. The backend URL + venue API key are
-// provisioned by the build (see src/config.ts) and never entered here.
 export function SetupScreen({ onDone }: { onDone: () => void }) {
   const saveSetup = useAuthStore((s) => s.saveSetup);
   const [staffName, setStaffName] = useState('');
@@ -30,52 +25,47 @@ export function SetupScreen({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to IDIP</Text>
-      <Text style={styles.subtitle}>Set up your door profile to get started.</Text>
+    <Screen edges={['top', 'bottom']} style={styles.screen}>
+      <View style={styles.logo}><Icon name="shield" size={30} color={COLORS.accent} /></View>
+      <Text style={styles.brand}>IDIP</Text>
+      <Text style={styles.tagline}>Set up your door profile</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Your Name"
-        placeholderTextColor="#6b7280"
-        value={staffName}
-        onChangeText={setStaffName}
-        autoFocus
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Create a 4-digit PIN"
-        placeholderTextColor="#6b7280"
-        keyboardType="number-pad"
-        secureTextEntry
-        maxLength={4}
-        value={pin}
-        onChangeText={setPin}
-      />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <TouchableOpacity
-        style={[styles.button, !valid && styles.buttonDisabled]}
-        onPress={submit}
-      >
-        <Text style={styles.buttonText}>Save & Continue</Text>
-      </TouchableOpacity>
-    </View>
+      <View style={styles.form}>
+        <Text style={styles.label}>Your name</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. Will"
+          placeholderTextColor={COLORS.textTertiary}
+          value={staffName}
+          onChangeText={(t) => { setStaffName(t); setError(null); }}
+          autoFocus
+        />
+        <Text style={[styles.label, { marginTop: SPACE.lg }]}>Create a 4-digit PIN</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="••••"
+          placeholderTextColor={COLORS.textTertiary}
+          keyboardType="number-pad"
+          secureTextEntry
+          maxLength={4}
+          value={pin}
+          onChangeText={(t) => { setPin(t); setError(null); }}
+        />
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+      </View>
+
+      <Button label="Save & Continue" onPress={submit} disabled={!valid} icon="check" />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: THEME.background, padding: 24, justifyContent: 'center' },
-  title: { color: THEME.textPrimary, fontSize: 28, fontWeight: '800', marginBottom: 8 },
-  subtitle: { color: THEME.textSecondary, fontSize: 15, marginBottom: 28 },
-  input: {
-    backgroundColor: THEME.card, color: THEME.textPrimary, borderRadius: 10,
-    padding: 16, marginBottom: 12, fontSize: 16,
-  },
-  error: { color: '#ef4444', marginBottom: 12 },
-  button: {
-    backgroundColor: '#2563eb', borderRadius: 12, minHeight: 56,
-    alignItems: 'center', justifyContent: 'center', marginTop: 8,
-  },
-  buttonDisabled: { opacity: 0.4 },
-  buttonText: { color: '#ffffff', fontSize: 18, fontWeight: '700' },
+  screen: { padding: SPACE.xl, justifyContent: 'center' },
+  logo: { width: 60, height: 60, borderRadius: RADIUS.xl, backgroundColor: COLORS.accentSoft, alignItems: 'center', justifyContent: 'center', marginBottom: SPACE.lg },
+  brand: { fontSize: 34, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: 2 },
+  tagline: { ...TYPE.body, marginTop: SPACE.xs, marginBottom: SPACE.xxl },
+  form: { marginBottom: SPACE.xl },
+  label: { ...TYPE.label, marginBottom: SPACE.sm },
+  input: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, color: COLORS.textPrimary, borderRadius: RADIUS.lg, paddingHorizontal: SPACE.lg, paddingVertical: SPACE.lg, fontSize: 17, fontWeight: '600' },
+  error: { color: COLORS.deny, marginTop: SPACE.md, fontSize: 14 },
 });

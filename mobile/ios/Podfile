@@ -57,5 +57,26 @@ target 'IDIP' do
         end
       end
     end
+
+    # App target tweaks (the user project, not the Pods project):
+    #  - suppress the harmless "ignoring duplicate libraries: -lc++" ld notice
+    #  - silence the "Bundle React Native…" run-script "every build" notice
+    installer.aggregate_targets.each do |agg|
+      project = agg.user_project
+      project.native_targets.each do |t|
+        t.build_configurations.each do |config|
+          ldflags = config.build_settings['OTHER_LDFLAGS'] || ['$(inherited)']
+          ldflags = [ldflags] if ldflags.is_a?(String)
+          ldflags << '-Wl,-no_warn_duplicate_libraries' unless ldflags.include?('-Wl,-no_warn_duplicate_libraries')
+          config.build_settings['OTHER_LDFLAGS'] = ldflags
+        end
+        t.build_phases.each do |phase|
+          if phase.isa == 'PBXShellScriptBuildPhase'
+            phase.always_out_of_date = '1'
+          end
+        end
+      end
+      project.save
+    end
   end
 end
