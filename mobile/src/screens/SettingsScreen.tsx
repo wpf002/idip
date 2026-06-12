@@ -2,20 +2,20 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Header, Screen } from '../components/Chrome';
 import { Card, ListRow } from '../components/ui';
-import { Icon } from '../components/Icon';
+import { Avatar } from '../components/Avatar';
 import { useAuthStore } from '../store/authStore';
 import { COLORS, RADIUS, SPACE, TYPE } from '../theme';
 
 export type SettingsRoute = 'HISTORY' | 'METRICS' | 'PROFILE';
 
 export function SettingsScreen({ onOpen, pendingCount }: { onOpen: (r: SettingsRoute) => void; pendingCount: number }) {
-  const staffName = useAuthStore((s) => s.staffName);
+  const { staffName, avatar } = useAuthStore();
   return (
     <Screen>
       <Header title="Settings" />
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <Card style={styles.profileCard}>
-          <View style={styles.avatar}><Icon name="user" size={24} color={COLORS.accent} /></View>
+          <Avatar size={48} uri={avatar} name={staffName} />
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{staffName ?? 'Door Staff'}</Text>
             <Text style={styles.role}>On Duty</Text>

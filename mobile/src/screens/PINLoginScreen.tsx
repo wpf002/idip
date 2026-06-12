@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Screen } from '../components/Chrome';
 import { Icon } from '../components/Icon';
+import { Avatar } from '../components/Avatar';
 import { useAuthStore } from '../store/authStore';
 import { COLORS, RADIUS, SPACE, TYPE } from '../theme';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'];
 
 export function PINLoginScreen({ onAuth }: { onAuth: () => void }) {
-  const { verifyPin, staffName } = useAuthStore();
+  const { verifyPin, staffName, avatar } = useAuthStore();
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
 
@@ -30,7 +31,7 @@ export function PINLoginScreen({ onAuth }: { onAuth: () => void }) {
   return (
     <Screen edges={['top', 'bottom']} style={styles.screen}>
       <View style={styles.top}>
-        <View style={styles.avatar}><Icon name="user" size={26} color={COLORS.accent} /></View>
+        <Avatar size={72} uri={avatar} name={staffName} />
         <Text style={styles.hi}>{staffName ? `Hi, ${staffName}` : 'Enter PIN'}</Text>
         <Text style={styles.sub}>Enter your PIN to start</Text>
         <View style={styles.dots}>

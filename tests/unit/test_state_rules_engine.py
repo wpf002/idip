@@ -75,3 +75,10 @@ def test_validate_flags_bad_postal_code():
     p = parse_barcode(build_aamva(dl_fields(state="TX", postal="BADZIP")))
     violations = validate(p, load_rules("TX"))
     assert any(v.code == REGEX_MISMATCH for v in violations)
+
+
+def test_validate_accepts_9_digit_zip():
+    # AAMVA barcodes often encode ZIP+4 as 9 digits with no hyphen.
+    p = parse_barcode(build_aamva(dl_fields(state="TX", postal="752480000")))
+    violations = validate(p, load_rules("TX"))
+    assert not any(v.code == REGEX_MISMATCH for v in violations)

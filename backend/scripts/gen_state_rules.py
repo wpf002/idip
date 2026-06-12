@@ -98,7 +98,9 @@ def build(state_code, state_name, regex, min_len, max_len, charset) -> dict:
             "maximum_age": 110,
         },
         "address_rules": {
-            "postal_code_regex": r"^[0-9]{5}(-[0-9]{4})?$",
+            # Accept ZIP, ZIP+4 (hyphenated), and the 9-digit ZIP+4 that AAMVA
+            # barcodes commonly encode without a hyphen (e.g. 752480000).
+            "postal_code_regex": r"^[0-9]{5}(-?[0-9]{4})?$",
             "state_must_match_jurisdiction": False,
         },
         "fraud_indicators": {

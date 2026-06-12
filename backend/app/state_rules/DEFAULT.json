@@ -41,7 +41,7 @@
     "maximum_age": 110
   },
   "address_rules": {
-    "postal_code_regex": "^[0-9]{5}(-[0-9]{4})?$",
+    "postal_code_regex": "^[0-9]{5}(-?[0-9]{4})?$",
     "state_must_match_jurisdiction": false
   },
   "fraud_indicators": {

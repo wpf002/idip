@@ -1,6 +1,6 @@
 // Auth state. The backend URL + venue API key come from build-time config
 // (provisioned per venue); door staff only set their name + PIN, which are
-// persisted in the iOS Keychain.
+// persisted in the iOS Keychain. An optional profile photo is also stored.
 import { create } from 'zustand';
 import * as Keychain from 'react-native-keychain';
 import { hashPin } from '../utils/crypto';
@@ -8,30 +8,35 @@ import { API_KEY, API_URL } from '../config';
 
 const SERVICE_STAFF = 'idip_staff';
 const SERVICE_PIN = 'idip_pin';
+const SERVICE_AVATAR = 'idip_avatar';
 
 interface AuthState {
   apiUrl: string;
   apiKey: string;
   staffName: string | null;
+  avatar: string | null; // data URI
   isAuthenticated: boolean;
   hasCredentials: boolean; // a staff name + PIN have been set up on this device
   loadCredentials: () => Promise<boolean>;
   saveSetup: (staffName: string, pin: string) => Promise<void>;
+  setAvatar: (dataUri: string) => Promise<void>;
   verifyPin: (pin: string) => Promise<boolean>;
   logout: () => void;
   reset: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-  // Backend connection is fixed by the build, not the user.
   apiUrl: API_URL,
   apiKey: API_KEY,
   staffName: null,
+  avatar: null,
   isAuthenticated: false,
   hasCredentials: false,
 
   async loadCredentials() {
     const stored = await Keychain.getGenericPassword({ service: SERVICE_STAFF });
+    const photo = await Keychain.getGenericPassword({ service: SERVICE_AVATAR });
+    if (photo) set({ avatar: photo.password });
     if (!stored) {
       set({ hasCredentials: false });
       return false;
@@ -44,6 +49,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await Keychain.setGenericPassword('staff', staffName, { service: SERVICE_STAFF });
     await Keychain.setGenericPassword('pin', hashPin(pin), { service: SERVICE_PIN });
     set({ staffName, hasCredentials: true });
+  },
+
+  async setAvatar(dataUri) {
+    await Keychain.setGenericPassword('avatar', dataUri, { service: SERVICE_AVATAR });
+    set({ avatar: dataUri });
   },
 
   async verifyPin(pin) {
@@ -61,6 +71,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   async reset() {
     await Keychain.resetGenericPassword({ service: SERVICE_STAFF });
     await Keychain.resetGenericPassword({ service: SERVICE_PIN });
-    set({ staffName: null, isAuthenticated: false, hasCredentials: false });
+    await Keychain.resetGenericPassword({ service: SERVICE_AVATAR });
+    set({ staffName: null, avatar: null, isAuthenticated: false, hasCredentials: false });
   },
 }));
