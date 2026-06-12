@@ -63,10 +63,10 @@ export function PassportScanScreen({ active, onResult, onBack, scanMrz }: Props)
         </View>
       )}
 
-      <View style={[styles.overlay, { paddingTop: insets.top + SPACE.md, paddingBottom: insets.bottom + SPACE.xl }]} pointerEvents="box-none">
-        <TouchableOpacity style={styles.backBtn} hitSlop={12} onPress={onBack}>
-          <Icon name="back" size={24} color="#fff" />
-        </TouchableOpacity>
+      <TouchableOpacity style={[styles.backBtn, { top: insets.top + SPACE.sm }]} hitSlop={16} onPress={onBack}>
+        <Icon name="back" size={24} color="#fff" />
+      </TouchableOpacity>
+      <View style={[styles.overlay, { paddingTop: insets.top + SPACE.xxl, paddingBottom: insets.bottom + SPACE.xl }]} pointerEvents="box-none">
         <Text style={styles.title}>Scan passport</Text>
         <Text style={styles.subtitle}>Hold the photo page in view — the two code lines at the bottom</Text>
 
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   noCam: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
   noCamText: { ...TYPE.body },
   overlay: { ...StyleSheet.absoluteFillObject, paddingHorizontal: SPACE.xl, alignItems: 'center' },
-  backBtn: { position: 'absolute', left: SPACE.lg, top: SPACE.md, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
+  backBtn: { position: 'absolute', left: SPACE.lg, zIndex: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 26, fontWeight: '800', color: '#fff' },
   subtitle: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginTop: 4, textAlign: 'center' },
   frameWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },

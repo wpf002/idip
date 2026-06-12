@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, Vibration, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, Vibration, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
-import { COLORS, DECISION, RADIUS, SPACE, TYPE } from '../theme';
+import { DECISION, RADIUS, SPACE } from '../theme';
 import type { ScanResult } from '../api/client';
 
 interface Props {
@@ -12,19 +12,29 @@ interface Props {
 }
 
 const DOC_LABEL: Record<string, string> = {
-  US_DRIVERS_LICENSE: "Driver's license",
+  US_DRIVERS_LICENSE: "Driver's License",
   US_STATE_ID: 'State ID',
-  US_PASSPORT: 'US passport',
-  PASSPORT_CARD: 'Passport card',
+  US_PASSPORT: 'US Passport',
+  PASSPORT_CARD: 'Passport Card',
   INTERNATIONAL_PASSPORT: 'Passport',
   INTERNATIONAL_ID: 'International ID',
   MILITARY_ID: 'Military ID',
 };
 
+function initials(name: string | null): string | null {
+  if (!name) return null;
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return null;
+  const first = parts[0][0];
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (first + last).toUpperCase();
+}
+
 export function ResultScreen({ result, onScanNext, onChallenge }: Props) {
   const insets = useSafeAreaInsets();
   const d = DECISION[result.result];
   const showChallenge = result.result === 'REVIEW' && result.challenge_available;
+  const ini = initials(result.name);
 
   useEffect(() => {
     Vibration.vibrate(result.result === 'DENY' ? [0, 80, 60, 80] : 40);
@@ -38,71 +48,51 @@ export function ResultScreen({ result, onScanNext, onChallenge }: Props) {
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        <View style={styles.badge}><Icon name={d.icon as any} size={40} color={d.color} strokeWidth={2.5} /></View>
-        <Text style={styles.decision}>{d.label.toUpperCase()}</Text>
-        <View style={styles.riskPill}><Text style={styles.riskText}>Risk {result.risk_score}</Text></View>
+      <View style={styles.body}>
+        <View style={styles.avatarWrap}>
+          <View style={styles.avatar}>
+            {ini ? <Text style={[styles.initials, { color: d.color }]}>{ini}</Text> : <Icon name="user" size={48} color={d.color} />}
+          </View>
+          <View style={[styles.badge, { backgroundColor: d.deep }]}>
+            <Icon name={d.icon as any} size={22} color="#fff" strokeWidth={3} />
+          </View>
+        </View>
 
+        <Text style={styles.decision}>{d.label.toUpperCase()}</Text>
         <Text style={styles.name}>{result.name ?? 'Unknown'}</Text>
         {result.age != null ? <Text style={styles.age}>Age {result.age}</Text> : null}
-
-        {result.flags.length > 0 ? (
-          <View style={styles.flagsCard}>
-            {result.flags.map((f, i) => (
-              <View key={`${f.code}-${i}`} style={[styles.flagRow, i > 0 && styles.flagDivider]}>
-                <View style={styles.flagWeight}>
-                  <Text style={styles.flagWeightText}>{f.weight >= 0 ? `+${f.weight}` : `${f.weight}`}</Text>
-                </View>
-                <Text style={styles.flagMsg}>{f.message}</Text>
-              </View>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.cleanRow}>
-            <Icon name="check" size={18} color="#ffffff" />
-            <Text style={styles.cleanText}>No violations</Text>
-          </View>
-        )}
-      </ScrollView>
+      </View>
 
       <View style={styles.actions}>
         {showChallenge ? (
           <TouchableOpacity activeOpacity={0.85} style={styles.secondary} onPress={onChallenge}>
             <Icon name="user" size={20} color="#fff" />
-            <Text style={styles.secondaryText}>Run face challenge</Text>
+            <Text style={styles.secondaryText}>Run Face Challenge</Text>
           </TouchableOpacity>
         ) : null}
         <TouchableOpacity activeOpacity={0.85} style={styles.cta} onPress={onScanNext}>
           <Icon name="scan" size={22} color="#fff" />
-          <Text style={styles.ctaText}>Scan next</Text>
+          <Text style={styles.ctaText}>Scan Next</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-const OVERLAY = 'rgba(0,0,0,0.18)';
 const OVERLAY_STRONG = 'rgba(0,0,0,0.30)';
 
 const styles = StyleSheet.create({
   fill: { flex: 1, paddingHorizontal: SPACE.xl },
   topRow: { alignItems: 'center', paddingTop: SPACE.sm },
   docType: { color: '#ffffff', fontSize: 13, fontWeight: '700', letterSpacing: 0.5, opacity: 0.9 },
-  body: { alignItems: 'center', paddingTop: SPACE.xxl, paddingBottom: SPACE.xl, flexGrow: 1, justifyContent: 'center' },
-  badge: { width: 84, height: 84, borderRadius: RADIUS.pill, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', marginBottom: SPACE.lg },
-  decision: { color: '#ffffff', fontSize: 52, fontWeight: '800', letterSpacing: 1 },
-  riskPill: { backgroundColor: OVERLAY, borderRadius: RADIUS.pill, paddingHorizontal: SPACE.lg, paddingVertical: 6, marginTop: SPACE.sm },
-  riskText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
-  name: { color: '#ffffff', fontSize: 26, fontWeight: '800', marginTop: SPACE.xxl, textAlign: 'center' },
-  age: { color: '#ffffff', fontSize: 16, fontWeight: '600', opacity: 0.9, marginTop: 2 },
-  flagsCard: { alignSelf: 'stretch', backgroundColor: OVERLAY, borderRadius: RADIUS.lg, padding: SPACE.sm, marginTop: SPACE.xl },
-  flagRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, padding: SPACE.md },
-  flagDivider: { borderTopWidth: 1, borderTopColor: OVERLAY },
-  flagWeight: { backgroundColor: OVERLAY_STRONG, borderRadius: RADIUS.sm, paddingHorizontal: SPACE.sm, paddingVertical: 3, minWidth: 44, alignItems: 'center' },
-  flagWeightText: { color: '#ffffff', fontWeight: '800', fontSize: 13 },
-  flagMsg: { color: '#ffffff', fontSize: 14, fontWeight: '500', flex: 1 },
-  cleanRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, marginTop: SPACE.xl, opacity: 0.9 },
-  cleanText: { color: '#ffffff', fontSize: 15, fontWeight: '600' },
+  body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  avatarWrap: { marginBottom: SPACE.xl },
+  avatar: { width: 124, height: 124, borderRadius: 62, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
+  initials: { fontSize: 46, fontWeight: '800' },
+  badge: { position: 'absolute', right: -2, bottom: -2, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#ffffff' },
+  decision: { color: '#ffffff', fontSize: 54, fontWeight: '800', letterSpacing: 1 },
+  name: { color: '#ffffff', fontSize: 26, fontWeight: '800', marginTop: SPACE.lg, textAlign: 'center' },
+  age: { color: '#ffffff', fontSize: 17, fontWeight: '600', opacity: 0.92, marginTop: 4 },
   actions: { gap: SPACE.sm },
   secondary: { flexDirection: 'row', gap: SPACE.sm, backgroundColor: OVERLAY_STRONG, borderRadius: RADIUS.lg, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
   secondaryText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },

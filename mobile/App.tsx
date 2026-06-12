@@ -14,7 +14,7 @@ import { PassportScanScreen } from './src/screens/PassportScanScreen';
 import { ResultScreen } from './src/screens/ResultScreen';
 import { ChallengeScreen } from './src/screens/ChallengeScreen';
 import { SettingsScreen, SettingsRoute } from './src/screens/SettingsScreen';
-import { LogsScreen } from './src/screens/LogsScreen';
+import { HistoryScreen } from './src/screens/HistoryScreen';
 import { MetricsScreen } from './src/screens/MetricsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 
@@ -69,45 +69,13 @@ function Root() {
   if (route === 'SETUP') return <SetupScreen onDone={() => setRoute('PIN')} />;
   if (route === 'PIN' || !isAuthenticated) return <PINLoginScreen onAuth={() => setRoute('APP')} />;
 
-  // Full-screen overlays
-  if (overlay === 'RESULT' && lastResult) {
-    return (
-      <ResultScreen
-        result={lastResult}
-        onScanNext={() => setOverlay(null)}
-        onChallenge={() => setOverlay('CHALLENGE')}
-      />
-    );
-  }
-  if (overlay === 'CHALLENGE' && lastResult) {
-    return (
-      <ChallengeScreen
-        questions={CHALLENGE_PROMPTS}
-        submit={(failures) => client.submitChallenge(lastResult.scan_id, failures)}
-        onComplete={(res) => { setLastResult(res); setOverlay('RESULT'); }}
-        onCancel={() => setOverlay('RESULT')}
-      />
-    );
-  }
-
-  // Settings sub-screens (full screen, no tab bar)
-  if (tab === 'SETTINGS' && settingsRoute === 'LOGS') return <LogsScreen client={client} onBack={() => setSettingsRoute(null)} />;
-  if (tab === 'SETTINGS' && settingsRoute === 'METRICS') return <MetricsScreen client={client} onBack={() => setSettingsRoute(null)} />;
-  if (tab === 'SETTINGS' && settingsRoute === 'PROFILE') {
-    return (
-      <ProfileScreen
-        onBack={() => setSettingsRoute(null)}
-        onSignOut={() => { logout(); setRoute('PIN'); }}
-        onReset={async () => { await reset(); setRoute('SETUP'); }}
-      />
-    );
-  }
-
-  const dlActive = route === 'APP' && tab === 'SCAN' && scanMode === 'DL' && overlay === null;
-  const passportActive = route === 'APP' && tab === 'SCAN' && scanMode === 'PASSPORT' && overlay === null;
+  const busyOverlay = overlay !== null || settingsRoute !== null;
+  const dlActive = tab === 'SCAN' && scanMode === 'DL' && !busyOverlay;
+  const passportActive = tab === 'SCAN' && scanMode === 'PASSPORT' && !busyOverlay;
 
   return (
     <View style={styles.shell}>
+      {/* Persistent shell — the camera stays mounted so it never has to cold-restart */}
       <View style={styles.content}>
         {tab === 'SCAN' && scanMode === null && <ScanHomeScreen onChoose={setScanMode} />}
         {tab === 'SCAN' && scanMode === 'DL' && (
@@ -126,8 +94,42 @@ function Root() {
           if (t === 'SETTINGS') setSettingsRoute(null);
         }}
       />
+
+      {/* Settings sub-screens (overlay on top of the shell) */}
+      {settingsRoute === 'HISTORY' && <Overlayed><HistoryScreen client={client} onBack={() => setSettingsRoute(null)} /></Overlayed>}
+      {settingsRoute === 'METRICS' && <Overlayed><MetricsScreen client={client} onBack={() => setSettingsRoute(null)} /></Overlayed>}
+      {settingsRoute === 'PROFILE' && (
+        <Overlayed>
+          <ProfileScreen
+            onBack={() => setSettingsRoute(null)}
+            onSignOut={() => { logout(); setRoute('PIN'); }}
+            onReset={async () => { await reset(); setRoute('SETUP'); }}
+          />
+        </Overlayed>
+      )}
+
+      {/* Decision overlays */}
+      {overlay === 'RESULT' && lastResult && (
+        <Overlayed>
+          <ResultScreen result={lastResult} onScanNext={() => setOverlay(null)} onChallenge={() => setOverlay('CHALLENGE')} />
+        </Overlayed>
+      )}
+      {overlay === 'CHALLENGE' && lastResult && (
+        <Overlayed>
+          <ChallengeScreen
+            questions={CHALLENGE_PROMPTS}
+            submit={(failures) => client.submitChallenge(lastResult.scan_id, failures)}
+            onComplete={(res) => { setLastResult(res); setOverlay('RESULT'); }}
+            onCancel={() => setOverlay('RESULT')}
+          />
+        </Overlayed>
+      )}
     </View>
   );
+}
+
+function Overlayed({ children }: { children: React.ReactNode }) {
+  return <View style={styles.overlayFill}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -136,4 +138,5 @@ const styles = StyleSheet.create({
   bootText: { color: COLORS.textPrimary, fontSize: 40, fontWeight: '800', letterSpacing: 4 },
   shell: { flex: 1, backgroundColor: COLORS.bg },
   content: { flex: 1 },
+  overlayFill: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.bg },
 });

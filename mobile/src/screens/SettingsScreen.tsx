@@ -6,7 +6,7 @@ import { Icon } from '../components/Icon';
 import { useAuthStore } from '../store/authStore';
 import { COLORS, RADIUS, SPACE, TYPE } from '../theme';
 
-export type SettingsRoute = 'LOGS' | 'METRICS' | 'PROFILE';
+export type SettingsRoute = 'HISTORY' | 'METRICS' | 'PROFILE';
 
 export function SettingsScreen({ onOpen, pendingCount }: { onOpen: (r: SettingsRoute) => void; pendingCount: number }) {
   const staffName = useAuthStore((s) => s.staffName);
@@ -17,25 +17,25 @@ export function SettingsScreen({ onOpen, pendingCount }: { onOpen: (r: SettingsR
         <Card style={styles.profileCard}>
           <View style={styles.avatar}><Icon name="user" size={24} color={COLORS.accent} /></View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{staffName ?? 'Door staff'}</Text>
-            <Text style={styles.role}>On duty</Text>
+            <Text style={styles.name}>{staffName ?? 'Door Staff'}</Text>
+            <Text style={styles.role}>On Duty</Text>
           </View>
         </Card>
 
         <Text style={styles.section}>Compliance</Text>
         <View style={styles.group}>
-          <ListRow icon="logs" title="Logs" subtitle="Scan history & CSV export" onPress={() => onOpen('LOGS')} />
+          <ListRow icon="logs" title="History" subtitle="Scan History & Export" onPress={() => onOpen('HISTORY')} />
           <View style={styles.divider} />
-          <ListRow icon="chart" title="Metrics" subtitle="Tonight, week, month" onPress={() => onOpen('METRICS')} />
+          <ListRow icon="chart" title="Metrics" subtitle="Tonight, Week & Month" onPress={() => onOpen('METRICS')} />
         </View>
 
         <Text style={styles.section}>Account</Text>
         <View style={styles.group}>
-          <ListRow icon="user" title="Profile" subtitle="Staff & venue info" onPress={() => onOpen('PROFILE')} />
+          <ListRow icon="user" title="Profile" subtitle="Staff & Venue Info" onPress={() => onOpen('PROFILE')} />
           {pendingCount > 0 ? (
             <>
               <View style={styles.divider} />
-              <ListRow icon="refresh" title="Pending sync" right={`${pendingCount}`} />
+              <ListRow icon="refresh" title="Pending Sync" right={`${pendingCount}`} />
             </>
           ) : null}
         </View>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -26,8 +26,11 @@ export function ScanScreen({ active, onResult, onBack, scan }: Props) {
   const [manual, setManual] = useState(false);
   const [manualValue, setManualValue] = useState('');
   const [busy, setBusy] = useState(false);
+  const fired = useRef(false);
 
   useEffect(() => { if (!hasPermission) requestPermission(); }, [hasPermission, requestPermission]);
+  // Re-arm the scanner each time the screen becomes active (e.g. after "Scan next").
+  useEffect(() => { if (active) fired.current = false; }, [active]);
 
   const submit = async (data: string, method: 'camera' | 'manual') => {
     if (busy || !data) return;
@@ -39,9 +42,9 @@ export function ScanScreen({ active, onResult, onBack, scan }: Props) {
   const codeScanner = useCodeScanner({
     codeTypes: ['pdf-417'],
     onCodeScanned: (codes) => {
-      if (!active || manual) return;
+      if (!active || manual || fired.current) return;
       const v = codes[0]?.value;
-      if (v) submit(v, 'camera');
+      if (v) { fired.current = true; submit(v, 'camera'); }
     },
   });
 
@@ -56,10 +59,10 @@ export function ScanScreen({ active, onResult, onBack, scan }: Props) {
         </View>
       )}
 
-      <View style={[styles.overlay, { paddingTop: insets.top + SPACE.md }]} pointerEvents="box-none">
-        <TouchableOpacity style={styles.backBtn} hitSlop={12} onPress={onBack}>
-          <Icon name="back" size={24} color="#fff" />
-        </TouchableOpacity>
+      <TouchableOpacity style={[styles.backBtn, { top: insets.top + SPACE.sm }]} hitSlop={16} onPress={onBack}>
+        <Icon name="back" size={24} color="#fff" />
+      </TouchableOpacity>
+      <View style={[styles.overlay, { paddingTop: insets.top + SPACE.xxl }]} pointerEvents="box-none">
         <Text style={styles.title}>Driver's License</Text>
         <Text style={styles.subtitle}>Point at the barcode on the back of the license</Text>
 
@@ -107,7 +110,7 @@ const styles = StyleSheet.create({
   noCam: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
   noCamText: { ...TYPE.body },
   overlay: { ...StyleSheet.absoluteFillObject, paddingHorizontal: SPACE.xl, alignItems: 'center' },
-  backBtn: { position: 'absolute', left: SPACE.lg, top: SPACE.md, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
+  backBtn: { position: 'absolute', left: SPACE.lg, zIndex: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 26, fontWeight: '800', color: '#fff' },
   subtitle: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginTop: 4, textAlign: 'center' },
   frameWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
