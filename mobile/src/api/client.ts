@@ -27,6 +27,7 @@ export interface StructuredScanPayload {
   sex?: string;
   height?: string;
   eye_color?: string;
+  hair_color?: string;
   document_number?: string;
   address_state?: string;
   postal_code?: string;

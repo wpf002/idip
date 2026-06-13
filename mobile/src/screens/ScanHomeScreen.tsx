@@ -19,20 +19,13 @@ function Choice({ icon, title, subtitle, onPress }: { icon: IconName; title: str
   );
 }
 
-export function ScanHomeScreen({ onChoose, onBarcodeFallback }: {
-  onChoose: (m: ScanMode) => void;
-  onBarcodeFallback: () => void;
-}) {
+export function ScanHomeScreen({ onChoose }: { onChoose: (m: ScanMode) => void }) {
   return (
     <Screen>
       <Header title="Scan ID" subtitle="Choose the document type" />
       <View style={styles.body}>
         <Choice icon="scan" title="Driver's License" subtitle="Reads the card + photo, checks for tampering" onPress={() => onChoose('DL')} />
         <Choice icon="passport" title="Passport" subtitle="Reads the photo page + code lines" onPress={() => onChoose('PASSPORT')} />
-        <TouchableOpacity activeOpacity={0.7} style={styles.fallback} onPress={onBarcodeFallback}>
-          <Icon name="edit" size={16} color={COLORS.textTertiary} />
-          <Text style={styles.fallbackText}>Barcode only — shows height & eye color</Text>
-        </TouchableOpacity>
       </View>
     </Screen>
   );
@@ -44,6 +37,4 @@ const styles = StyleSheet.create({
   iconWrap: { width: 56, height: 56, borderRadius: RADIUS.lg, backgroundColor: COLORS.accentSoft, alignItems: 'center', justifyContent: 'center' },
   title: { ...TYPE.title, fontSize: 18 },
   subtitle: { ...TYPE.body, marginTop: 2 },
-  fallback: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.sm, paddingVertical: SPACE.md, marginTop: SPACE.sm },
-  fallbackText: { ...TYPE.caption, color: COLORS.textTertiary },
 });

@@ -10,7 +10,6 @@ import { Icon } from './src/components/Icon';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { PINLoginScreen } from './src/screens/PINLoginScreen';
 import { ScanHomeScreen } from './src/screens/ScanHomeScreen';
-import { ScanScreen } from './src/screens/ScanScreen';
 import { ResultScreen } from './src/screens/ResultScreen';
 import { ChallengeScreen } from './src/screens/ChallengeScreen';
 import { SettingsScreen, SettingsRoute } from './src/screens/SettingsScreen';
@@ -41,20 +40,12 @@ function Root() {
   const [lastResult, setLastResult] = useState<ScanResult | null>(null);
   const [faceImage, setFaceImage] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
-  const [barcodeMode, setBarcodeMode] = useState(false);
 
   useEffect(() => {
     loadCredentials().then((found) => setRoute(found ? 'PIN' : 'SETUP'));
   }, [loadCredentials]);
 
   const client = useMemo(() => new IDIPClient(apiUrl, apiKey), [apiUrl, apiKey]);
-
-  // Barcode-only fallback (PDF417) — returns height/eye/hair from the barcode.
-  const scanBarcode = async (barcode: string, method: 'camera' | 'manual') => {
-    const res = await client.scan({ barcode_data: barcode, scan_method: method });
-    setLastResult(res); setFaceImage(null); setOverlay('RESULT');
-    return res;
-  };
 
   const startScan = async () => {
     try {
@@ -86,18 +77,10 @@ function Root() {
   return (
     <View style={styles.shell}>
       <View style={styles.content}>
-        {tab === 'SCAN' && !barcodeMode && <ScanHomeScreen onChoose={startScan} onBarcodeFallback={() => setBarcodeMode(true)} />}
-        {tab === 'SCAN' && barcodeMode && (
-          <ScanScreen
-            active={tab === 'SCAN' && barcodeMode && overlay === null && settingsRoute === null}
-            scan={scanBarcode}
-            onResult={() => setOverlay('RESULT')}
-            onBack={() => setBarcodeMode(false)}
-          />
-        )}
+        {tab === 'SCAN' && <ScanHomeScreen onChoose={startScan} />}
         {tab === 'SETTINGS' && <SettingsScreen onOpen={setSettingsRoute} pendingCount={0} />}
       </View>
-      <TabBar active={tab} onChange={(t) => { setTab(t); setBarcodeMode(false); if (t === 'SETTINGS') setSettingsRoute(null); }} />
+      <TabBar active={tab} onChange={(t) => { setTab(t); if (t === 'SETTINGS') setSettingsRoute(null); }} />
 
       {settingsRoute === 'HISTORY' && <Overlayed><HistoryScreen client={client} onBack={() => setSettingsRoute(null)} /></Overlayed>}
       {settingsRoute === 'METRICS' && <Overlayed><MetricsScreen client={client} onBack={() => setSettingsRoute(null)} /></Overlayed>}

@@ -41,6 +41,13 @@ function dataMatch(result: any): boolean | undefined {
   return undefined;           // NotPerformed
 }
 
+// The PDF417 barcode's parsed AAMVA elements — this is where height / eye /
+// hair color live (they aren't in BlinkID's top-level visual fields).
+function barcodeElements(result: any): any {
+  const sub = (result?.subResults ?? []).find((s: any) => s?.barcode);
+  return sub?.barcode?.extendedElements ?? {};
+}
+
 export async function scanWithBlinkId(): Promise<BlinkIdScan | null> {
   const sdk = new BlinkIdSdkSettings(BLINKID_LICENSE_KEY);
   const session = new BlinkIdSessionSettings();
@@ -49,6 +56,7 @@ export async function scanWithBlinkId(): Promise<BlinkIdScan | null> {
   const result: any = await performScan(sdk, session);
   if (!result) return null;
 
+  const be = barcodeElements(result);
   const payload: StructuredScanPayload = {
     document_type: mapDocType(result),
     first_name: str(result.firstName),
@@ -56,8 +64,12 @@ export async function scanWithBlinkId(): Promise<BlinkIdScan | null> {
     date_of_birth: isoDate(result.dateOfBirth),
     expiration_date: isoDate(result.dateOfExpiry),
     sex: str(result.sex),
+    height: str(be.height) ?? str(be.heightIn),
+    eye_color: str(be.eyeColor),
+    hair_color: str(be.hairColor),
     document_number: str(result.documentNumber),
-    address_state: str(result.stateCode) ?? str(result.documentClassInfo?.region),
+    address_state: str(result.stateCode) ?? str(be.addressJurisdictionCode),
+    postal_code: str(be.addressPostalCode),
     nationality: str(result.nationality),
     data_match: dataMatch(result),
     scan_method: 'camera',

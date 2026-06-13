@@ -50,6 +50,7 @@ class StructuredScanRequest(BaseModel):
     sex: str | None = None
     height: str | None = None
     eye_color: str | None = None
+    hair_color: str | None = None
     document_number: str | None = None
     address_state: str | None = None      # 2-letter US jurisdiction
     postal_code: str | None = None

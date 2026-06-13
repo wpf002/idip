@@ -167,6 +167,7 @@ async def scan_structured(
         sex=payload.sex,
         height=payload.height,
         eye_color=payload.eye_color,
+        hair_color=payload.hair_color,
         license_number=payload.document_number,
         address_state=state,
         postal_code=payload.postal_code,
