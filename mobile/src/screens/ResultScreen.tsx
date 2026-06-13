@@ -46,13 +46,22 @@ function formatHeight(h?: string | null): string | null {
   return h;
 }
 
+function formatExpiry(iso?: string | null): string | null {
+  if (!iso) return null;
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[2]}/${m[3]}/${m[1]}` : iso;
+}
+
 function details(r: ScanResult): { label: string; value: string }[] {
   const out: { label: string; value: string }[] = [];
+  if (r.sex) out.push({ label: 'Sex', value: r.sex === 'M' ? 'Male' : r.sex === 'F' ? 'Female' : r.sex });
+  const exp = formatExpiry(r.expiration_date);
+  if (exp) out.push({ label: 'Expires', value: exp });
+  if (r.state) out.push({ label: 'State', value: r.state });
   const ht = formatHeight(r.height);
   if (ht) out.push({ label: 'Height', value: ht });
   if (r.eye_color) out.push({ label: 'Eyes', value: EYE[r.eye_color.toUpperCase()] ?? r.eye_color });
   if (r.hair_color) out.push({ label: 'Hair', value: HAIR[r.hair_color.toUpperCase()] ?? r.hair_color });
-  if (r.sex) out.push({ label: 'Sex', value: r.sex === 'M' ? 'Male' : r.sex === 'F' ? 'Female' : r.sex });
   return out;
 }
 
@@ -137,8 +146,8 @@ const styles = StyleSheet.create({
   decision: { color: '#ffffff', fontSize: 54, fontWeight: '800', letterSpacing: 1 },
   name: { color: '#ffffff', fontSize: 26, fontWeight: '800', marginTop: SPACE.lg, textAlign: 'center' },
   age: { color: '#ffffff', fontSize: 17, fontWeight: '600', opacity: 0.92, marginTop: 4 },
-  detailRow: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: RADIUS.lg, marginTop: SPACE.xl, paddingVertical: SPACE.md, paddingHorizontal: SPACE.sm },
-  detailItem: { flex: 1, alignItems: 'center' },
+  detailRow: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: RADIUS.lg, marginTop: SPACE.xl, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.sm },
+  detailItem: { width: '33.33%', alignItems: 'center', paddingVertical: SPACE.sm },
   detailValue: { color: '#ffffff', fontSize: 17, fontWeight: '800' },
   detailLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginTop: 2, textTransform: 'uppercase' },
   actions: { gap: SPACE.sm },

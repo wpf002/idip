@@ -43,6 +43,7 @@ export interface ScanResult {
   age: number | null;
   is_valid_age: boolean;
   is_expired: boolean;
+  expiration_date?: string | null;
   state: string | null;
   name: string | null;
   sex?: string | null;

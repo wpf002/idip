@@ -22,6 +22,7 @@ class ScanResponse(BaseModel):
     age: int | None
     is_valid_age: bool
     is_expired: bool
+    expiration_date: str | None = None
     risk_score: int
     result: str
     flags: list[dict]

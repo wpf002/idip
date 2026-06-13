@@ -57,6 +57,7 @@ export async function scanWithBlinkId(): Promise<BlinkIdScan | null> {
     expiration_date: isoDate(result.dateOfExpiry),
     sex: str(result.sex),
     document_number: str(result.documentNumber),
+    address_state: str(result.stateCode) ?? str(result.documentClassInfo?.region),
     nationality: str(result.nationality),
     data_match: dataMatch(result),
     scan_method: 'camera',
