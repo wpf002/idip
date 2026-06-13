@@ -9,7 +9,7 @@ import { MainTab, TabBar } from './src/components/Chrome';
 import { Icon } from './src/components/Icon';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { PINLoginScreen } from './src/screens/PINLoginScreen';
-import { ScanHomeScreen } from './src/screens/ScanHomeScreen';
+import { ScanHomeScreen, ScanMode } from './src/screens/ScanHomeScreen';
 import { ResultScreen } from './src/screens/ResultScreen';
 import { ChallengeScreen } from './src/screens/ChallengeScreen';
 import { SettingsScreen, SettingsRoute } from './src/screens/SettingsScreen';
@@ -47,9 +47,9 @@ function Root() {
 
   const client = useMemo(() => new IDIPClient(apiUrl, apiKey), [apiUrl, apiKey]);
 
-  const startScan = async () => {
+  const startScan = async (mode: ScanMode) => {
     try {
-      const r = await scanWithBlinkId(); // opens BlinkID's camera UI
+      const r = await scanWithBlinkId(mode); // opens BlinkID's camera UI
       if (!r) return;                    // cancelled / nothing scanned
       setScanning(true);
       const res = await client.scanStructured(r.payload);
