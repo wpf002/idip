@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, TouchableOpacity, Vibration, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, Vibration, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
 import { DECISION, RADIUS, SPACE } from '../theme';
@@ -7,6 +7,7 @@ import type { ScanResult } from '../api/client';
 
 interface Props {
   result: ScanResult;
+  photoUri?: string | null;
   onScanNext: () => void;
   onChallenge: () => void;
 }
@@ -55,7 +56,7 @@ function details(r: ScanResult): { label: string; value: string }[] {
   return out;
 }
 
-export function ResultScreen({ result, onScanNext, onChallenge }: Props) {
+export function ResultScreen({ result, photoUri, onScanNext, onChallenge }: Props) {
   const insets = useSafeAreaInsets();
   const d = DECISION[result.result];
   const showChallenge = result.result === 'REVIEW' && result.challenge_available;
@@ -76,7 +77,13 @@ export function ResultScreen({ result, onScanNext, onChallenge }: Props) {
       <View style={styles.body}>
         <View style={styles.avatarWrap}>
           <View style={styles.avatar}>
-            {ini ? <Text style={[styles.initials, { color: d.color }]}>{ini}</Text> : <Icon name="user" size={48} color={d.color} />}
+            {photoUri ? (
+              <Image source={{ uri: photoUri }} style={styles.avatarImg} />
+            ) : ini ? (
+              <Text style={[styles.initials, { color: d.color }]}>{ini}</Text>
+            ) : (
+              <Icon name="user" size={48} color={d.color} />
+            )}
           </View>
           <View style={[styles.badge, { backgroundColor: d.deep }]}>
             <Icon name={d.icon as any} size={22} color="#fff" strokeWidth={3} />
@@ -123,7 +130,8 @@ const styles = StyleSheet.create({
   docType: { color: '#ffffff', fontSize: 13, fontWeight: '700', letterSpacing: 0.5, opacity: 0.9 },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   avatarWrap: { marginBottom: SPACE.xl },
-  avatar: { width: 124, height: 124, borderRadius: 62, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 124, height: 124, borderRadius: 62, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarImg: { width: 124, height: 124 },
   initials: { fontSize: 46, fontWeight: '800' },
   badge: { position: 'absolute', right: -2, bottom: -2, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#ffffff' },
   decision: { color: '#ffffff', fontSize: 54, fontWeight: '800', letterSpacing: 1 },

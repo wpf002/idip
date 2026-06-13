@@ -17,6 +17,24 @@ export interface ScanPayload {
   client_timestamp?: string;
 }
 
+export interface StructuredScanPayload {
+  document_type: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  date_of_birth?: string;
+  expiration_date?: string;
+  sex?: string;
+  height?: string;
+  eye_color?: string;
+  document_number?: string;
+  address_state?: string;
+  postal_code?: string;
+  nationality?: string;
+  data_match?: boolean;
+  scan_method?: 'camera' | 'manual';
+}
+
 export interface ScanResult {
   scan_id: string;
   result: 'ALLOW' | 'REVIEW' | 'DENY';
@@ -65,6 +83,13 @@ export class IDIPClient {
 
   scan(payload: ScanPayload): Promise<ScanResult> {
     return this.request<ScanResult>('/v1/scan', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  scanStructured(payload: StructuredScanPayload): Promise<ScanResult> {
+    return this.request<ScanResult>('/v1/scan/structured', {
       method: 'POST',
       body: JSON.stringify(payload),
     });

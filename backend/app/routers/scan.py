@@ -15,6 +15,7 @@ from ..schemas import (
     ChallengeResponse,
     ScanRequest,
     ScanResponse,
+    StructuredScanRequest,
     SyncResponse,
     SyncResult,
 )
@@ -23,8 +24,8 @@ from ..services.decision_engine import run_pipeline
 from ..services.face_challenge import generate_questions, grade_answers, score_challenge
 from ..services.parsed_id import ParsedID
 from ..services.pos_webhook import send_deny_webhook
-from ..services.risk_scorer import map_result, score_risk
-from ..services.violations import Violation
+from ..services.risk_scorer import flag, map_result, score_risk
+from ..services.violations import DATA_MISMATCH, Violation
 from .deps import get_current_location
 
 router = APIRouter(prefix="/v1", tags=["scan"])
@@ -74,6 +75,113 @@ async def scan(
         db,
         raw_data=payload.barcode_data,
         document_input_type=payload.document_input_type,
+        location_id=location.id,
+        location_state=location.state_code,
+        scan_method=payload.scan_method,
+    )
+
+    record = await audit_logger.log_scan(
+        db,
+        hashed_license_number=decision.hashed_license_number,
+        state_code=decision.state,
+        dob=decision.parsed.date_of_birth,
+        age=decision.age,
+        expiration_date=decision.parsed.expiration_date,
+        risk_score=decision.risk_score,
+        result=decision.result,
+        flags=decision.flags,
+        document_type=decision.parsed.document_type,
+        location_id=location.id,
+        staff_id=payload.staff_id,
+        scan_method=payload.scan_method,
+        synced=True,
+        client_timestamp=payload.client_timestamp,
+    )
+
+    if decision.result == "DENY":
+        background.add_task(
+            _fire_deny_webhook,
+            location.id,
+            {
+                "scan_id": record.id,
+                "result": decision.result,
+                "risk_score": decision.risk_score,
+                "state": decision.state,
+                "timestamp": record.timestamp.isoformat(),
+                "location_id": location.id,
+            },
+        )
+
+    return ScanResponse(
+        scan_id=record.id,
+        timestamp=record.timestamp,
+        document_type=decision.parsed.document_type,
+        age=decision.age,
+        is_valid_age=decision.is_valid_age,
+        is_expired=decision.is_expired,
+        risk_score=decision.risk_score,
+        result=decision.result,
+        flags=decision.flags,
+        state=decision.state,
+        name=decision.parsed.full_name or None,
+        sex=decision.parsed.sex,
+        height=decision.parsed.height,
+        eye_color=decision.parsed.eye_color,
+        hair_color=decision.parsed.hair_color,
+        nationality=decision.parsed.nationality,
+        issuing_country=decision.parsed.issuing_country,
+        parse_errors=decision.parsed.parse_errors,
+        challenge_available=decision.challenge_available,
+        challenge_required=decision.challenge_required,
+    )
+
+
+@router.post("/scan/structured", response_model=ScanResponse)
+async def scan_structured(
+    payload: StructuredScanRequest,
+    background: BackgroundTasks,
+    location: Location = Depends(get_current_location),
+    db: AsyncSession = Depends(get_db),
+) -> ScanResponse:
+    """Score fields already parsed on-device (e.g. by a dedicated ID-scanning
+    SDK) through the same risk/rules/fraud pipeline."""
+    try:
+        await check_rate_limit(location.id)
+    except RateLimitExceeded as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="scan rate limit exceeded",
+            headers={"Retry-After": str(exc.retry_after)},
+        )
+
+    state = (payload.address_state or "").upper() or None
+    parsed = ParsedID(
+        document_type=payload.document_type,
+        source="STRUCTURED",  # skips AAMVA/MRZ format checks — the SDK validated it
+        first_name=payload.first_name,
+        middle_name=payload.middle_name,
+        last_name=payload.last_name,
+        date_of_birth=payload.date_of_birth,
+        expiration_date=payload.expiration_date,
+        sex=payload.sex,
+        height=payload.height,
+        eye_color=payload.eye_color,
+        license_number=payload.document_number,
+        address_state=state,
+        postal_code=payload.postal_code,
+        state=state,
+        nationality=payload.nationality,
+        issuing_country=payload.issuing_country,
+    )
+
+    extra: list[Violation] = []
+    if payload.data_match is False:
+        extra.append(flag(DATA_MISMATCH, message="document data did not match (possible tamper)"))
+
+    decision = await run_pipeline(
+        db,
+        parsed=parsed,
+        extra_violations=extra,
         location_id=location.id,
         location_state=location.state_code,
         scan_method=payload.scan_method,

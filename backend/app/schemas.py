@@ -38,6 +38,28 @@ class ScanResponse(BaseModel):
     challenge_required: bool = False
 
 
+# ---- Structured scan (pre-parsed fields, e.g. from an on-device ID SDK) ----
+class StructuredScanRequest(BaseModel):
+    document_type: str = "US_DRIVERS_LICENSE"
+    first_name: str | None = None
+    middle_name: str | None = None
+    last_name: str | None = None
+    date_of_birth: str | None = None      # ISO YYYY-MM-DD
+    expiration_date: str | None = None    # ISO YYYY-MM-DD
+    sex: str | None = None
+    height: str | None = None
+    eye_color: str | None = None
+    document_number: str | None = None
+    address_state: str | None = None      # 2-letter US jurisdiction
+    postal_code: str | None = None
+    nationality: str | None = None
+    issuing_country: str | None = None
+    data_match: bool | None = None        # SDK front-vs-barcode/MRZ agreement
+    staff_id: str | None = None
+    scan_method: str = "camera"
+    client_timestamp: datetime | None = None
+
+
 # ---- Challenge ----
 class ChallengeRequest(BaseModel):
     scan_id: str

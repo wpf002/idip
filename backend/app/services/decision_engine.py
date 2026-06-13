@@ -137,8 +137,10 @@ def assemble_violations(
 async def run_pipeline(
     session: AsyncSession,
     *,
-    raw_data: str,
+    raw_data: str = "",
     document_input_type: str = "AUTO",
+    parsed: ParsedID | None = None,
+    extra_violations: list[Violation] | None = None,
     location_id: str | None = None,
     location_state: str | None = None,
     scan_method: str = "camera",
@@ -147,7 +149,10 @@ async def run_pipeline(
     minimum_age: int | None = None,
     run_fraud: bool = True,
 ) -> DecisionResult:
-    parsed = detect_and_parse(raw_data, document_input_type)
+    # `parsed` may be supplied directly (e.g. fields extracted on-device by an
+    # ID-scanning SDK); otherwise parse the raw barcode/MRZ string.
+    if parsed is None:
+        parsed = detect_and_parse(raw_data, document_input_type)
     rules = location_rules.rules_for_document(parsed, location_state=location_state)
 
     hashed = hmac_hash(parsed.license_number) if parsed.license_number else None
@@ -170,6 +175,8 @@ async def run_pipeline(
         today=today,
         minimum_age=minimum_age,
     )
+    if extra_violations:
+        violations.extend(extra_violations)
 
     risk = score_risk(violations, thresholds=location_rules.thresholds(rules))
 

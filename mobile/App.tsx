@@ -1,16 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useAuthStore } from './src/store/authStore';
 import { IDIPClient, ScanResult } from './src/api/client';
+import { scanWithBlinkId } from './src/services/blinkid';
 import { COLORS } from './src/theme';
 import { MainTab, TabBar } from './src/components/Chrome';
 import { Icon } from './src/components/Icon';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { PINLoginScreen } from './src/screens/PINLoginScreen';
-import { ScanHomeScreen, ScanMode } from './src/screens/ScanHomeScreen';
-import { ScanScreen } from './src/screens/ScanScreen';
-import { PassportScanScreen } from './src/screens/PassportScanScreen';
+import { ScanHomeScreen } from './src/screens/ScanHomeScreen';
 import { ResultScreen } from './src/screens/ResultScreen';
 import { ChallengeScreen } from './src/screens/ChallengeScreen';
 import { SettingsScreen, SettingsRoute } from './src/screens/SettingsScreen';
@@ -36,10 +35,11 @@ function Root() {
   const { apiUrl, apiKey, isAuthenticated, loadCredentials, logout, reset } = useAuthStore();
   const [route, setRoute] = useState<Route>('BOOT');
   const [tab, setTab] = useState<MainTab>('SCAN');
-  const [scanMode, setScanMode] = useState<ScanMode | null>(null);
   const [settingsRoute, setSettingsRoute] = useState<SettingsRoute | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [lastResult, setLastResult] = useState<ScanResult | null>(null);
+  const [faceImage, setFaceImage] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
     loadCredentials().then((found) => setRoute(found ? 'PIN' : 'SETUP'));
@@ -47,15 +47,20 @@ function Root() {
 
   const client = useMemo(() => new IDIPClient(apiUrl, apiKey), [apiUrl, apiKey]);
 
-  const scan = async (barcode: string, method: 'camera' | 'manual') => {
-    const res = await client.scan({ barcode_data: barcode, scan_method: method });
-    setLastResult(res); setOverlay('RESULT');
-    return res;
-  };
-  const scanMrz = async (mrz: string) => {
-    const res = await client.scan({ barcode_data: mrz, document_input_type: 'MRZ' });
-    setLastResult(res); setOverlay('RESULT');
-    return res;
+  const startScan = async () => {
+    try {
+      const r = await scanWithBlinkId(); // opens BlinkID's camera UI
+      if (!r) return;                    // cancelled / nothing scanned
+      setScanning(true);
+      const res = await client.scanStructured(r.payload);
+      setLastResult(res);
+      setFaceImage(r.faceImage ?? null);
+      setOverlay('RESULT');
+    } catch {
+      // cancelled, license error, or network error — return to the chooser
+    } finally {
+      setScanning(false);
+    }
   };
 
   if (route === 'BOOT') {
@@ -69,33 +74,14 @@ function Root() {
   if (route === 'SETUP') return <SetupScreen onDone={() => setRoute('PIN')} />;
   if (route === 'PIN' || !isAuthenticated) return <PINLoginScreen onAuth={() => setRoute('APP')} />;
 
-  const busyOverlay = overlay !== null || settingsRoute !== null;
-  const dlActive = tab === 'SCAN' && scanMode === 'DL' && !busyOverlay;
-  const passportActive = tab === 'SCAN' && scanMode === 'PASSPORT' && !busyOverlay;
-
   return (
     <View style={styles.shell}>
-      {/* Persistent shell — the camera stays mounted so it never has to cold-restart */}
       <View style={styles.content}>
-        {tab === 'SCAN' && scanMode === null && <ScanHomeScreen onChoose={setScanMode} />}
-        {tab === 'SCAN' && scanMode === 'DL' && (
-          <ScanScreen active={dlActive} scan={scan} onResult={() => setOverlay('RESULT')} onBack={() => setScanMode(null)} />
-        )}
-        {tab === 'SCAN' && scanMode === 'PASSPORT' && (
-          <PassportScanScreen active={passportActive} scanMrz={scanMrz} onResult={() => setOverlay('RESULT')} onBack={() => setScanMode(null)} />
-        )}
+        {tab === 'SCAN' && <ScanHomeScreen onChoose={startScan} />}
         {tab === 'SETTINGS' && <SettingsScreen onOpen={setSettingsRoute} pendingCount={0} />}
       </View>
-      <TabBar
-        active={tab}
-        onChange={(t) => {
-          setTab(t);
-          if (t === 'SCAN') setScanMode(null);
-          if (t === 'SETTINGS') setSettingsRoute(null);
-        }}
-      />
+      <TabBar active={tab} onChange={(t) => { setTab(t); if (t === 'SETTINGS') setSettingsRoute(null); }} />
 
-      {/* Settings sub-screens (overlay on top of the shell) */}
       {settingsRoute === 'HISTORY' && <Overlayed><HistoryScreen client={client} onBack={() => setSettingsRoute(null)} /></Overlayed>}
       {settingsRoute === 'METRICS' && <Overlayed><MetricsScreen client={client} onBack={() => setSettingsRoute(null)} /></Overlayed>}
       {settingsRoute === 'PROFILE' && (
@@ -108,10 +94,9 @@ function Root() {
         </Overlayed>
       )}
 
-      {/* Decision overlays */}
       {overlay === 'RESULT' && lastResult && (
         <Overlayed>
-          <ResultScreen result={lastResult} onScanNext={() => setOverlay(null)} onChallenge={() => setOverlay('CHALLENGE')} />
+          <ResultScreen result={lastResult} photoUri={faceImage} onScanNext={() => setOverlay(null)} onChallenge={() => setOverlay('CHALLENGE')} />
         </Overlayed>
       )}
       {overlay === 'CHALLENGE' && lastResult && (
@@ -123,6 +108,13 @@ function Root() {
             onCancel={() => setOverlay('RESULT')}
           />
         </Overlayed>
+      )}
+
+      {scanning && (
+        <View style={styles.scrim}>
+          <ActivityIndicator size="large" color={COLORS.accent} />
+          <Text style={styles.scrimText}>Checking…</Text>
+        </View>
       )}
     </View>
   );
@@ -139,4 +131,6 @@ const styles = StyleSheet.create({
   shell: { flex: 1, backgroundColor: COLORS.bg },
   content: { flex: 1 },
   overlayFill: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.bg },
+  scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,10,11,0.7)', alignItems: 'center', justifyContent: 'center', gap: 12 },
+  scrimText: { color: COLORS.textPrimary, fontSize: 16, fontWeight: '600' },
 });

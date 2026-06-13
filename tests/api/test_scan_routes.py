@@ -63,6 +63,50 @@ async def test_scan_passport_via_mrz(client, auth_headers, valid_passport_td3):
     assert body["result"] == "ALLOW"
 
 
+async def test_structured_adult_is_allow(client, auth_headers):
+    body = {
+        "document_type": "US_DRIVERS_LICENSE",
+        "first_name": "JOHN", "last_name": "DOE",
+        "date_of_birth": "1990-01-15", "expiration_date": "2035-01-15",
+        "sex": "M", "height": "070 in", "eye_color": "BRO",
+        "document_number": "12345678", "address_state": "TX", "postal_code": "75001",
+        "data_match": True,
+    }
+    resp = await client.post("/v1/scan/structured", json=body, headers=auth_headers)
+    assert resp.status_code == 200
+    j = resp.json()
+    assert j["result"] == "ALLOW"
+    assert j["age"] == 36 or j["age"] is not None
+    assert j["name"] == "JOHN DOE"
+    assert j["height"] == "070 in"
+
+
+async def test_structured_tamper_flags_data_mismatch(client, auth_headers):
+    body = {
+        "document_type": "US_DRIVERS_LICENSE",
+        "first_name": "JANE", "last_name": "ROE",
+        "date_of_birth": "1992-03-03", "expiration_date": "2035-03-03",
+        "document_number": "87654321", "address_state": "TX",
+        "data_match": False,
+    }
+    resp = await client.post("/v1/scan/structured", json=body, headers=auth_headers)
+    j = resp.json()
+    assert any(f["code"] == "DATA_MISMATCH" for f in j["flags"])
+
+
+async def test_structured_underage_is_deny(client, auth_headers):
+    body = {
+        "document_type": "US_DRIVERS_LICENSE",
+        "first_name": "KID", "last_name": "YOUNG",
+        "date_of_birth": "2010-06-01", "expiration_date": "2035-06-01",
+        "document_number": "11112222", "address_state": "TX", "data_match": True,
+    }
+    resp = await client.post("/v1/scan/structured", json=body, headers=auth_headers)
+    j = resp.json()
+    assert j["result"] == "DENY"
+    assert any(f["code"] == "UNDERAGE" for f in j["flags"])
+
+
 async def test_challenge_updates_decision(client, auth_headers, adult_dl):
     scan = (
         await client.post("/v1/scan", json={"barcode_data": adult_dl}, headers=auth_headers)
