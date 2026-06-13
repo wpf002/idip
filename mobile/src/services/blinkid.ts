@@ -22,6 +22,7 @@ import {
   BlinkIdSdkSettings,
   BlinkIdSessionSettings,
   ScanningMode,
+  DetectionLevel,
 } from '@microblink/blinkid-react-native';
 import { BLINKID_LICENSE_KEY } from '../blinkidLicense';
 import type { StructuredScanPayload } from '../api/client';
@@ -74,6 +75,17 @@ export async function scanWithBlinkId(mode: ScanMode = 'DL'): Promise<BlinkIdSca
 
   const ss = session.scanningSettings;
   ss.croppedImageSettings.returnFaceImage = true; // face is on the DL front / passport data page
+
+  // Be permissive about framing/quality detection so BlinkID stops looping on
+  // "move farther away / reduce glare" and accepts a workable frame. The big
+  // driver is the iPhone's minimum focus distance: a card held close enough to
+  // fill the frame is too close to focus, so the image is soft and BlinkID asks
+  // you to move it back — then wants more detail once it's far. Low detection
+  // accepts the slightly-soft, real-world frame instead of nagging.
+  ss.blurDetectionLevel = DetectionLevel.Low;
+  ss.glareDetectionLevel = DetectionLevel.Low;
+  ss.tiltDetectionLevel = DetectionLevel.Low;
+
   if (mode === 'PASSPORT') {
     ss.scanPassportDataPageOnly = true;
     // MRZ self-validates (check digits) — relax the gates so glare/dim light on
@@ -83,9 +95,12 @@ export async function scanWithBlinkId(mode: ScanMode = 'DL'): Promise<BlinkIdSca
     ss.skipImagesWithInadequateLightingConditions = false;
     ss.skipImagesOccludedByHand = false;
     ss.combineResultsFromMultipleInputImages = false;
+  } else {
+    // DL front (OCR). Skip only the worst frames (Low detection above) and
+    // accept the front read without demanding perfect certainty, so it
+    // completes instead of endlessly asking to reframe.
+    ss.allowUncertainFrontSideScan = true;
   }
-  // For the DL FRONT path the gates stay ON: that read is plain OCR with no
-  // checksum, so a bad frame would mean a wrong DOB, not just a retry.
 
   const result: any = await performScan(sdk, session);
   if (!result) return null;
