@@ -94,7 +94,9 @@ class Staff(Base):
 class StateRule(Base):
     __tablename__ = "state_rules"
 
-    state_code: Mapped[str] = mapped_column(String(2), primary_key=True)
+    # Wider than 2 chars to hold the "DEFAULT" sentinel rule set (Postgres
+    # enforces VARCHAR length; SQLite does not).
+    state_code: Mapped[str] = mapped_column(String(16), primary_key=True)
     state_name: Mapped[str] = mapped_column(String(50))
     version: Mapped[str] = mapped_column(String(10), default="1.0")
     rules: Mapped[dict] = mapped_column(JSON, default=dict)

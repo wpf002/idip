@@ -1,0 +1,8 @@
+# The Railway build only needs backend/ (via the root Dockerfile). Skip the
+# rest of the monorepo to keep uploads small.
+mobile/
+.claude/
+migrations/
+docker-compose.dev.yml
+render.yaml
+dev.sh

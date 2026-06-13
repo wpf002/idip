@@ -1,0 +1,13 @@
+# Railway reads this from the repo root (the build-context root that `railway up`
+# uploads). It builds the root Dockerfile, which packages the backend/ service.
+# Railway injects $PORT (the Dockerfile binds to it) and DATABASE_URL from the
+# Postgres plugin.
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
