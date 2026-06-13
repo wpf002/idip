@@ -27,6 +27,7 @@ DerivedData/
 # Env / secrets
 .env
 *.local
+mobile/src/blinkidLicense.ts
 
 # OS
 .DS_Store
