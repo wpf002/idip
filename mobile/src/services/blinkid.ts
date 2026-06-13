@@ -12,6 +12,11 @@
 // would corrupt the age check, which we never want to trade for speed.)
 //
 // Passports: single data-page scan — keeps the face and the MRZ in one capture.
+// The glossy laminate throws a lot of glare under venue lighting, so the
+// default quality gates would reject frame after frame and the scan would never
+// complete. The MRZ has its own check digits (like a barcode), so we drop the
+// gates for passports too — a bad frame fails the checksum and is retried, it
+// can't yield wrong data.
 import {
   performScan,
   BlinkIdSdkSettings,
@@ -71,9 +76,16 @@ export async function scanWithBlinkId(mode: ScanMode = 'DL'): Promise<BlinkIdSca
   ss.croppedImageSettings.returnFaceImage = true; // face is on the DL front / passport data page
   if (mode === 'PASSPORT') {
     ss.scanPassportDataPageOnly = true;
+    // MRZ self-validates (check digits) — relax the gates so glare/dim light on
+    // the glossy page can't stall the scan, and take the first valid frame.
+    ss.skipImagesWithBlur = false;
+    ss.skipImagesWithGlare = false;
+    ss.skipImagesWithInadequateLightingConditions = false;
+    ss.skipImagesOccludedByHand = false;
+    ss.combineResultsFromMultipleInputImages = false;
   }
-  // NOTE: image quality gates (blur/glare/lighting) are left ON — these scans
-  // are OCR/MRZ-based, where a bad frame means a wrong read, not a no-read.
+  // For the DL FRONT path the gates stay ON: that read is plain OCR with no
+  // checksum, so a bad frame would mean a wrong DOB, not just a retry.
 
   const result: any = await performScan(sdk, session);
   if (!result) return null;
