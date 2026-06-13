@@ -1,14 +1,17 @@
 // BlinkID (Microblink) scanning, tuned for door speed.
 //
-// Driver's licenses: barcode-only. We read just the PDF417 on the back, which
-// carries the full AAMVA record (name, DOB, expiry, address, height, eye, hair,
-// doc number) — a sub-second, single-capture scan with no card flip. The
-// barcode is checksum-protected, so dropping the image quality gates can't
-// produce a misread; it just lets BlinkID accept the first decodable frame.
-// (Trade-off: barcodes hold no photo, so there's no face image for licenses.)
+// Both document types scan a SINGLE side — no card flip, which was the main
+// source of delay (the default "automatic" mode captures front, makes you flip,
+// captures the back, then combines). One capture is plenty for the door.
 //
-// Passports: single data-page scan, which keeps the face and the MRZ in one
-// capture. Either way the fields map to the backend's structured-scan payload.
+// Driver's licenses: the FRONT (photo side). We read the visual zone via OCR —
+// name, date of birth, expiry, sex — and capture the face photo. This matches
+// the natural instinct to show the photo side. (Trade-off vs. the back barcode:
+// no height/eye/hair, and OCR is slightly less robust than a checksummed
+// barcode, so we KEEP BlinkID's image quality gates on here — a misread DOB
+// would corrupt the age check, which we never want to trade for speed.)
+//
+// Passports: single data-page scan — keeps the face and the MRZ in one capture.
 import {
   performScan,
   BlinkIdSdkSettings,
@@ -21,7 +24,7 @@ import type { ScanMode } from '../screens/ScanHomeScreen';
 
 export interface BlinkIdScan {
   payload: StructuredScanPayload;
-  faceImage?: string; // data URI (passports only — DL barcode has no photo)
+  faceImage?: string; // data URI
 }
 
 function isoDate(d: any): string | undefined {
@@ -30,7 +33,7 @@ function isoDate(d: any): string | undefined {
   return `${dt.year}-${String(dt.month).padStart(2, '0')}-${String(dt.day).padStart(2, '0')}`;
 }
 
-// Accepts both StringResult ({value}) and the barcode's plain-string fields.
+// Accepts both StringResult ({value}) and plain-string fields.
 function str(v: any): string | undefined {
   const s = v?.value ?? v;
   return typeof s === 'string' && s.trim() ? s.trim() : undefined;
@@ -54,7 +57,7 @@ function dataMatch(result: any): boolean | undefined {
   return undefined; // NotPerformed (expected on single-side scans)
 }
 
-// The parsed AAMVA barcode (BarcodeResult) from the back of a US license.
+// The parsed AAMVA barcode, if a back side happened to be captured.
 function barcodeSub(result: any): any {
   return (result?.subResults ?? []).find((s: any) => s?.barcode)?.barcode ?? null;
 }
@@ -65,30 +68,19 @@ export async function scanWithBlinkId(mode: ScanMode = 'DL'): Promise<BlinkIdSca
   session.scanningMode = ScanningMode.Single; // one side, no flip
 
   const ss = session.scanningSettings;
-  // Door-speed: accept the first usable frame instead of waiting for a pristine
-  // one. Safe for the PDF417 barcode (checksum-protected) and for the passport
-  // MRZ (its own check digits).
-  ss.skipImagesWithBlur = false;
-  ss.skipImagesWithGlare = false;
-  ss.skipImagesWithInadequateLightingConditions = false;
-  ss.skipImagesOccludedByHand = false;
-  ss.combineResultsFromMultipleInputImages = false;
-
+  ss.croppedImageSettings.returnFaceImage = true; // face is on the DL front / passport data page
   if (mode === 'PASSPORT') {
     ss.scanPassportDataPageOnly = true;
-    ss.croppedImageSettings.returnFaceImage = true;
-  } else {
-    ss.enableBarcodeScanOnly = true; // back PDF417 only
-    ss.croppedImageSettings.returnFaceImage = false;
   }
+  // NOTE: image quality gates (blur/glare/lighting) are left ON — these scans
+  // are OCR/MRZ-based, where a bad frame means a wrong read, not a no-read.
 
   const result: any = await performScan(sdk, session);
   if (!result) return null;
 
-  const bc = barcodeSub(result); // BarcodeResult or null
+  const bc = barcodeSub(result); // usually null for a front scan
   const be = bc?.extendedElements ?? {};
-  // Prefer the normalized top-level field, fall back to the raw barcode field
-  // (in barcode-only mode the top-level fields may be empty).
+  // Prefer the normalized top-level (VIZ) field, fall back to a barcode field.
   const pick = (top: any, b: any) => str(top) ?? str(b);
 
   const payload: StructuredScanPayload = {

@@ -24,7 +24,7 @@ export function ScanHomeScreen({ onChoose }: { onChoose: (m: ScanMode) => void }
     <Screen>
       <Header title="Scan ID" subtitle="Choose the document type" />
       <View style={styles.body}>
-        <Choice icon="scan" title="Driver's License" subtitle="Reads the card + photo, checks for tampering" onPress={() => onChoose('DL')} />
+        <Choice icon="scan" title="Driver's License" subtitle="Scan the front — photo, name, date of birth" onPress={() => onChoose('DL')} />
         <Choice icon="passport" title="Passport" subtitle="Reads the photo page + code lines" onPress={() => onChoose('PASSPORT')} />
       </View>
     </Screen>
