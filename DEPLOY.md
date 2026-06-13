@@ -1,11 +1,43 @@
 # Deploying the IDIP backend
 
+> **Status: live on Railway** → https://backend-production-c1f7.up.railway.app
+> (project `idip`). The mobile app already points here via
+> [`mobile/src/config.ts`](mobile/src/config.ts). The notes below cover how it
+> was deployed and how to reproduce or re-provision it.
+
 The backend is a Dockerized FastAPI app. It needs Postgres and a few env vars,
 and it auto-rewrites the provider's `postgres://` URL to the async driver, so it
 runs on any host. Below is **Railway** (preferred); a Render Blueprint
 (`render.yaml`) is also in the repo as an alternative.
 
-## Railway
+## How this repo deploys to Railway (CLI)
+
+`railway up` uploads the **git repo root** as the build context (not the current
+directory — passing a sub-path gives "prefix not found"). So the repo has a
+**root `Dockerfile`** (with `backend/`-prefixed COPYs) and a root `railway.toml`
+(`builder = "DOCKERFILE"`); `.railwayignore` trims the upload to backend-only. A
+second, self-contained Dockerfile stays in `backend/` for local `docker build`.
+
+What was run: `railway init --name idip` → `railway add --database postgres` →
+`railway add --service backend` → set the variables below → `railway up
+--service backend` → `railway domain`. Then provision (below). To get
+push-to-deploy, connect the GitHub repo to the `backend` service in the Railway
+dashboard — no root-directory override needed, the root Dockerfile handles it.
+
+## Provision after deploy
+
+```bash
+URL=https://backend-production-c1f7.up.railway.app
+curl -X POST $URL/admin/seed-rules                     # seeds 52 state rules
+curl -X POST $URL/admin/location -H 'Content-Type: application/json' \
+  -d '{"name":"My Venue","state_code":"TX"}'           # -> {"api_key":"idip_..."}
+```
+
+Put the domain + key in [`mobile/src/config.ts`](mobile/src/config.ts) and
+rebuild. The scan pipeline reads state rules from bundled JSON files at runtime,
+so `seed-rules` is an admin convenience, not required for scanning.
+
+## Railway (GitHub-connected — alternative to the CLI flow above)
 
 1. Sign in at **https://railway.app** and connect GitHub.
 2. **New Project → Deploy from GitHub repo →** select `idip`.
