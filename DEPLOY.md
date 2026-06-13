@@ -20,9 +20,18 @@ second, self-contained Dockerfile stays in `backend/` for local `docker build`.
 
 What was run: `railway init --name idip` → `railway add --database postgres` →
 `railway add --service backend` → set the variables below → `railway up
---service backend` → `railway domain`. Then provision (below). To get
-push-to-deploy, connect the GitHub repo to the `backend` service in the Railway
-dashboard — no root-directory override needed, the root Dockerfile handles it.
+--service backend` → `railway domain`. Then provision (below).
+
+**Auto-deploy is wired:** the `backend` service is connected to GitHub
+`wpf002/idip` @ `main`, so every push to `main` redeploys automatically:
+
+```bash
+railway service source connect --repo wpf002/idip --branch main --service backend
+```
+
+(No root-directory override needed — the root `Dockerfile` handles it. Env vars
+persist across the source switch. To go back to manual uploads:
+`railway service source disconnect`.)
 
 ## Provision after deploy
 
