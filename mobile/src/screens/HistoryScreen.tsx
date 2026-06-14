@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Header, Screen } from '../components/Chrome';
 import { Segmented } from '../components/ui';
 import { Icon } from '../components/Icon';
@@ -79,9 +79,48 @@ export function HistoryScreen({ client, onBack }: { client: IDIPClient; onBack: 
 
   useEffect(() => { load(); }, [load]);
 
+  const deleteOne = useCallback((scanId: string) => {
+    Alert.alert('Delete entry?', 'This removes the scan from history permanently.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setItems((prev) => prev.filter((i) => i.scan_id !== scanId)); // optimistic
+          try { await client.deleteLog(scanId); } catch { load(); }
+        },
+      },
+    ]);
+  }, [client, load]);
+
+  const clearAll = useCallback(() => {
+    if (!items.length) return;
+    Alert.alert('Clear all history?', `This permanently deletes all ${items.length} entries.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear all',
+        style: 'destructive',
+        onPress: async () => {
+          setItems([]); // optimistic
+          try { await client.clearLogs(); } catch { load(); }
+        },
+      },
+    ]);
+  }, [client, items.length, load]);
+
   return (
     <Screen>
-      <Header title="History" onBack={onBack} />
+      <Header
+        title="History"
+        onBack={onBack}
+        right={
+          items.length > 0 ? (
+            <TouchableOpacity onPress={clearAll} hitSlop={12} style={styles.clearBtn}>
+              <Text style={styles.clearText}>Clear all</Text>
+            </TouchableOpacity>
+          ) : undefined
+        }
+      />
       <View style={styles.filterWrap}>
         <Segmented options={FILTERS} value={filter} onChange={setFilter} />
       </View>
@@ -124,6 +163,9 @@ export function HistoryScreen({ client, onBack }: { client: IDIPClient; onBack: 
                 </View>
                 <Text style={styles.time}>{timeAgo(item.timestamp)}</Text>
               </View>
+              <TouchableOpacity onPress={() => deleteOne(item.scan_id)} hitSlop={10} style={styles.delBtn}>
+                <Icon name="trash" size={18} color={COLORS.textTertiary} />
+              </TouchableOpacity>
             </View>
           );
         }}
@@ -156,4 +198,7 @@ const styles = StyleSheet.create({
   time: { ...TYPE.caption, color: COLORS.textTertiary },
   empty: { alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: SPACE.md },
   emptyText: { ...TYPE.body },
+  clearBtn: { paddingHorizontal: SPACE.sm, paddingVertical: 4 },
+  clearText: { ...TYPE.caption, color: COLORS.deny, fontWeight: '700' },
+  delBtn: { padding: SPACE.xs, marginLeft: 2 },
 });

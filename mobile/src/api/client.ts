@@ -80,6 +80,7 @@ export class IDIPClient {
     if (!resp.ok) {
       throw new IDIPNetworkError(resp.status, `Request to ${path} failed: ${resp.status}`);
     }
+    if (resp.status === 204) return undefined as T;
     return (await resp.json()) as T;
   }
 
@@ -119,6 +120,14 @@ export class IDIPClient {
     if (params.offset != null) qs.set('offset', String(params.offset));
     const query = qs.toString();
     return this.request(`/v1/logs${query ? `?${query}` : ''}`, { method: 'GET' });
+  }
+
+  deleteLog(scanId: string): Promise<void> {
+    return this.request<void>(`/v1/logs/${encodeURIComponent(scanId)}`, { method: 'DELETE' });
+  }
+
+  clearLogs(): Promise<{ deleted: number }> {
+    return this.request('/v1/logs', { method: 'DELETE' });
   }
 
   getMetrics(period = 'today') {

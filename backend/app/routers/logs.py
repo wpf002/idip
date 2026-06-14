@@ -5,9 +5,9 @@ import csv
 import io
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, Query
-from fastapi.responses import StreamingResponse
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response, StreamingResponse
+from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
@@ -59,6 +59,32 @@ async def get_logs(
         for r in rows
     ]
     return {"items": items, "limit": limit, "offset": offset, "count": len(items)}
+
+
+@router.delete("/logs/{scan_id}")
+async def delete_log(
+    scan_id: str,
+    location: Location = Depends(get_current_location),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Delete a single scan record belonging to this location."""
+    row = await db.get(Scan, scan_id)
+    if row is None or row.location_id != location.id:
+        raise HTTPException(status_code=404, detail="scan not found")
+    await db.delete(row)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete("/logs")
+async def clear_logs(
+    location: Location = Depends(get_current_location),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Delete all scan records for this location."""
+    result = await db.execute(sa_delete(Scan).where(Scan.location_id == location.id))
+    await db.commit()
+    return {"deleted": result.rowcount or 0}
 
 
 @router.get("/logs/export")

@@ -51,6 +51,32 @@ async def test_logs_pagination(client, auth_headers, adult_dl):
     assert body["limit"] == 2
 
 
+async def test_delete_single_log(client, auth_headers, adult_dl):
+    await _scan(client, auth_headers, adult_dl)
+    scan_id = (await client.get("/v1/logs", headers=auth_headers)).json()["items"][0]["scan_id"]
+    resp = await client.delete(f"/v1/logs/{scan_id}", headers=auth_headers)
+    assert resp.status_code == 204
+    assert (await client.get("/v1/logs", headers=auth_headers)).json()["items"] == []
+
+
+async def test_delete_missing_log_404(client, auth_headers):
+    resp = await client.delete("/v1/logs/does-not-exist", headers=auth_headers)
+    assert resp.status_code == 404
+
+
+async def test_clear_all_logs(client, auth_headers, adult_dl, underage_dl):
+    await _scan(client, auth_headers, adult_dl)
+    await _scan(client, auth_headers, underage_dl)
+    resp = await client.delete("/v1/logs", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["deleted"] == 2
+    assert (await client.get("/v1/logs", headers=auth_headers)).json()["items"] == []
+
+
+async def test_delete_log_requires_auth(client):
+    assert (await client.delete("/v1/logs/x")).status_code == 401
+
+
 async def test_logs_export_is_csv(client, auth_headers, adult_dl):
     await _scan(client, auth_headers, adult_dl)
     resp = await client.get("/v1/logs/export", headers=auth_headers)

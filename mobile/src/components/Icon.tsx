@@ -5,7 +5,7 @@ import { COLORS } from '../theme';
 export type IconName =
   | 'scan' | 'passport' | 'settings' | 'user' | 'logs' | 'chart'
   | 'check' | 'x' | 'alert' | 'chevron' | 'back' | 'camera'
-  | 'refresh' | 'lock' | 'shield' | 'keypad' | 'flash' | 'edit' | 'logout';
+  | 'refresh' | 'lock' | 'shield' | 'keypad' | 'flash' | 'edit' | 'logout' | 'trash';
 
 interface Props {
   name: IconName;
@@ -147,6 +147,16 @@ function render(name: IconName, p: object, color: string) {
           <Path d="M14 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8" {...p} />
           <Polyline points="17 8 21 12 17 16" {...p} />
           <Line x1="21" y1="12" x2="10" y2="12" {...p} />
+        </>
+      );
+    case 'trash':
+      return (
+        <>
+          <Polyline points="4 7 20 7" {...p} />
+          <Path d="M6 7v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7" {...p} />
+          <Path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" {...p} />
+          <Line x1="10" y1="11" x2="10" y2="17" {...p} />
+          <Line x1="14" y1="11" x2="14" y2="17" {...p} />
         </>
       );
     default:
